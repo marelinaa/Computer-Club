@@ -65,6 +65,7 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 
 	// Чтение событий
 	var Events []objects.Event
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		fmt.Println(line)
@@ -99,7 +100,20 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 		//регулирование действий игроков
 		switch event.Identifier() {
 		case "1":
-			incomingEvents.Id1(event, club)
+			err := incomingEvents.Id1(event, club)
+			if err != nil {
+				return nil, err
+			}
+		case "2":
+			err := incomingEvents.Id2(event, club)
+			if err != nil {
+				return nil, err
+			}
+		case "3":
+			err := incomingEvents.Id3(event, club)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		Events = append(Events, *event)
@@ -127,7 +141,7 @@ func main() {
 	filename := os.Args[1]
 	club, err := ReadInputFile(filename)
 	if err != nil {
-		fmt.Printf("Ошибка чтения файла: %v\n", err)
+		fmt.Printf("Error is in line: %v\n", err)
 		return
 	}
 
