@@ -22,10 +22,10 @@ func parseTime(input string) (time.Time, error) {
 	return t, nil
 }
 
-func ReadInputFile(filename string) (*objects.Club, error) {
+func ReadInputFile(filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, errors.New("can not open file")
+		return errors.New("can not open file")
 	}
 
 	scanner := bufio.NewScanner(file)
@@ -35,7 +35,7 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 	line := scanner.Text()
 	numTables, err := strconv.Atoi(line)
 	if err != nil {
-		return nil, errors.New(line)
+		return errors.New(line)
 	}
 
 	// Чтение времени начала и окончания работы
@@ -43,13 +43,13 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 	parts := strings.Split(scanner.Text(), " ")
 	openingTime, err := parseTime(parts[0])
 	if err != nil {
-		return nil, errors.New(scanner.Text())
+		return errors.New(scanner.Text())
 	}
 	fmt.Printf("%s\n", openingTime.Format("15:04"))
 
 	closingTime, err := parseTime(parts[1])
 	if err != nil {
-		return nil, errors.New(scanner.Text())
+		return errors.New(scanner.Text())
 	}
 
 	// Чтение стоимости часа
@@ -57,7 +57,7 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 	lineRate := scanner.Text()
 	hourlyRate, err := strconv.Atoi(lineRate)
 	if err != nil {
-		return nil, errors.New(lineRate)
+		return errors.New(lineRate)
 	}
 
 	var club *objects.Club
@@ -76,7 +76,7 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 
 		eventTime, err := parseTime(eventParts[0])
 		if err != nil {
-			return nil, errors.New("can not parse time")
+			return errors.New("can not parse time")
 		}
 
 		var event *objects.Event
@@ -89,11 +89,11 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 		if len(eventParts) == 4 {
 			tableID, err := strconv.Atoi(eventParts[3])
 			if err != nil {
-				return nil, errors.New(eventParts[3])
+				return errors.New(eventParts[3])
 			}
 			event, err = objects.NewEvent(eventTime, eventParts[1], eventParts[2], tableID)
 			if err != nil {
-				return nil, errors.New(line)
+				return errors.New(line)
 			}
 		}
 
@@ -102,17 +102,22 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 		case "1":
 			err := incomingEvents.Id1(event, club)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case "2":
 			err := incomingEvents.Id2(event, club)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case "3":
 			err := incomingEvents.Id3(event, club)
 			if err != nil {
-				return nil, err
+				return err
+			}
+		case "4":
+			err := incomingEvents.Id4(event, club)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -120,33 +125,38 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err != nil {
 		fmt.Println(err)
-		return nil, errors.New("can not make club")
+		return errors.New("can not make club")
 	}
 
 	err = file.Close()
 	if err != nil {
-		return nil, errors.New("can not close file")
+		return errors.New("can not close file")
 	}
 
-	return club, nil
+	err11 := incomingEvents.Id11(club)
+	if err11 != nil {
+		return err
+	}
+
+	return nil
 
 }
 
 func main() {
 	filename := os.Args[1]
-	club, err := ReadInputFile(filename)
+	err := ReadInputFile(filename)
 	if err != nil {
 		fmt.Printf("Error is in line: %v\n", err)
 		return
 	}
 
 	// Дальнейшая обработка данных из файла
-	club.PrintClub()
+	//club.PrintClub()
 	// fmt.Printf("События:\n")
 	// for _, event := range club.Events {
 	// 	fmt.Printf("%s %s %s\n", event.Time.Format("15:04"), event.Identifier, event.Body)

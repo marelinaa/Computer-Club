@@ -2,6 +2,7 @@ package objects
 
 import (
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -57,6 +58,7 @@ type Club struct {
 	closingTime     time.Time
 	hourlyRate      int
 	currentVisitors map[string]bool
+	currentGamers   map[string]int
 	currentTables   map[int]string
 	waitList        []string
 	//events      []Event
@@ -73,6 +75,7 @@ func NewClub(numTables int, openingTime, closingTime time.Time, hourlyRate int) 
 		closingTime:     closingTime,
 		hourlyRate:      hourlyRate,
 		currentVisitors: make(map[string]bool),
+		currentGamers:   make(map[string]int),
 		currentTables:   make(map[int]string),
 		waitList:        []string{},
 		//events:      events,
@@ -104,6 +107,25 @@ func (club *Club) RemoveVisitor(visitor string) {
 	club.currentVisitors[visitor] = false
 }
 
+func (club *Club) AddGamer(gamer string, table int) {
+	club.currentGamers[gamer] = table
+}
+
+func (club *Club) RemoveGamer(gamer string) {
+	_, exists := club.currentGamers[gamer]
+	if exists {
+		delete(club.currentGamers, gamer)
+	}
+}
+
+func (club *Club) GetGamerTable(gamer string) int {
+	table, exists := club.currentGamers[gamer]
+	if exists {
+		return table
+	}
+	return 0
+}
+
 func (club *Club) AddToWaitList(visitor string) {
 	club.waitList = append(club.waitList, visitor)
 }
@@ -115,6 +137,17 @@ func (club *Club) RemoveFromWaitList(visitor string) {
 			break
 		}
 	}
+}
+
+func (club *Club) GetWaitListLength() int {
+	return len(club.waitList)
+}
+
+func (club *Club) GetClientFromWaitList(index int) string {
+	if index >= 0 && index < len(club.waitList) {
+		return club.waitList[index]
+	}
+	return ""
 }
 
 func (club *Club) WhoUsesTable(numTable int) string {
@@ -131,15 +164,14 @@ func (club *Club) AddTable(numTable int, gamer string) {
 }
 
 func (club *Club) RemoveTable(numTable int) {
-	delete(club.currentTables, numTable)
+	_, exists := club.currentTables[numTable]
+	if exists {
+		delete(club.currentTables, numTable)
+	}
 }
 
 func (club *Club) GetCurrTableCount() int {
 	return len(club.currentTables)
-}
-
-func (club *Club) GetWaitListLength() int {
-	return len(club.waitList)
 }
 
 func (club *Club) PrintClub() {
@@ -147,6 +179,19 @@ func (club *Club) PrintClub() {
 	fmt.Printf("Время начала работы: %s\n", club.openingTime.Format("15:04"))
 	fmt.Printf("Время окончания работы: %s\n", club.closingTime.Format("15:04"))
 	fmt.Printf("Стоимость часа: %d\n", club.hourlyRate)
+}
+
+func (club *Club) ClubCloses() *[]string {
+	keys := make([]string, 0, len(club.currentVisitors))
+	for key := range club.currentVisitors {
+		if club.currentVisitors[key] {
+			keys = append(keys, key)
+			club.currentVisitors[key] = false
+		}
+	}
+
+	sort.Strings(keys)
+	return &keys
 }
 
 type Gamer struct {
