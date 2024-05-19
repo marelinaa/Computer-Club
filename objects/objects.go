@@ -2,14 +2,61 @@ package objects
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"time"
 )
 
 type Table struct {
-	Number   int
-	Revenue  int
-	Duration int
+	number       int
+	revenue      int
+	startTime    time.Time
+	endTime      time.Time
+	duration     int
+	occupiedTime time.Duration
+}
+
+func NewTable(number int, startTime, endTime time.Time) (*Table, error) {
+	return &Table{
+		number:       number,
+		startTime:    startTime,
+		duration:     int(endTime.Sub(startTime).Minutes()),
+		occupiedTime: 0,
+	}, nil
+}
+
+func (table *Table) CalculateDurationInMinutes() {
+	table.duration = int(table.endTime.Sub(table.startTime).Minutes())
+}
+
+func (table *Table) Revenue() int {
+	return table.revenue
+}
+
+func (table *Table) UpdateOccupiedTime() {
+	table.occupiedTime += table.endTime.Sub(table.startTime)
+}
+
+func (table *Table) UpdateRevenue(rate int) {
+	hours := math.Ceil(float64(table.duration) / 60)
+	price := int(hours) * rate
+	table.revenue += price
+}
+
+func (table *Table) UpdateDuration() {
+	table.duration = int(table.endTime.Sub(table.startTime).Minutes())
+}
+
+func (table *Table) SetStartTime(startTime time.Time) {
+	table.startTime = startTime
+}
+
+func (table *Table) SetDuration(duration int) {
+	table.duration = duration
+}
+
+func (table *Table) SetEndTime(endTime time.Time) {
+	table.endTime = endTime
 }
 
 type Event struct {
@@ -61,6 +108,7 @@ type Club struct {
 	currentGamers   map[string]int
 	currentTables   map[int]string
 	waitList        []string
+	tablesRevenue   map[int]Table
 	//events      []Event
 }
 
@@ -78,6 +126,7 @@ func NewClub(numTables int, openingTime, closingTime time.Time, hourlyRate int) 
 		currentGamers:   make(map[string]int),
 		currentTables:   make(map[int]string),
 		waitList:        []string{},
+		tablesRevenue:   make(map[int]Table),
 		//events:      events,
 	}, nil
 }
@@ -92,6 +141,10 @@ func (club *Club) OpeningTime() time.Time {
 
 func (club *Club) ClosingTime() time.Time {
 	return club.closingTime
+}
+
+func (club *Club) HourlyRate() int {
+	return club.hourlyRate
 }
 
 func (club *Club) IsVisitorInClub(visitor string) bool {
@@ -192,6 +245,14 @@ func (club *Club) ClubCloses() *[]string {
 
 	sort.Strings(keys)
 	return &keys
+}
+
+func (club *Club) GetTablesRevenue() map[int]Table {
+	return club.tablesRevenue
+}
+
+func (club *Club) SetTablesRevenue(m map[int]Table) {
+	club.tablesRevenue = m
 }
 
 type Gamer struct {

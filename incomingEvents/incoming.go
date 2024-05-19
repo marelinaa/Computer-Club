@@ -13,6 +13,14 @@ func IsValidClientName(name string) bool {
 	return regex.MatchString(name)
 }
 
+func Revenue(club *objects.Club) {
+	tables := club.GetTablesRevenue()
+	for key, value := range tables {
+		fmt.Printf("%d %d\n", key, value.Revenue())
+	}
+
+}
+
 func Id1(event *objects.Event, club *objects.Club) error {
 	//если неподходящее имя клиента
 	if !IsValidClientName(event.Body()) {
@@ -60,6 +68,25 @@ func Id2(event *objects.Event, club *objects.Club) error {
 		//если стол не занят
 		club.AddTable(event.TableNum(), event.Body())
 		club.AddGamer(event.Body(), event.TableNum())
+
+		//запуск подсчета времени и стоимости посещения стола
+		tableRevenue := club.GetTablesRevenue()
+		currTable, exists := tableRevenue[event.TableNum()]
+		if exists {
+			currTable.SetStartTime(event.Time())
+			tableRevenue[event.TableNum()] = currTable
+			club.SetTablesRevenue(tableRevenue)
+		} else {
+			table, err := objects.NewTable(event.TableNum(), event.Time(), event.Time())
+			if err != nil {
+				fmt.Println("id2")
+				return err
+			}
+			m := make(map[int]objects.Table)
+			m[event.TableNum()] = *table
+			club.SetTablesRevenue(m)
+		}
+
 	} else if club.WhoUsesTable(event.TableNum()) != "" {
 		//если стол занят
 		placeIsBusy, err := objects.NewEvent(event.Time(), "13", "PlaceIsBusy", 0)
@@ -116,6 +143,16 @@ func Id4(event *objects.Event, club *objects.Club) error {
 	club.RemoveGamer(gamer)
 	club.RemoveVisitor(gamer)
 
+	//окончание подсчета стоимости стола
+	tableRevenue := club.GetTablesRevenue()
+	t := tableRevenue[table]
+	t.SetEndTime(event.Time())
+	t.UpdateOccupiedTime()
+	t.UpdateDuration()
+	t.UpdateRevenue(club.HourlyRate())
+	tableRevenue[table] = t
+	club.SetTablesRevenue(tableRevenue)
+
 	if club.GetWaitListLength() != 0 {
 		err := Id12(event, club, table)
 		if err != nil {
@@ -134,7 +171,19 @@ func Id11(club *objects.Club) error {
 			fmt.Println("id11")
 			return err
 		}
+		//окончание подсчета стоимости стола
+		gamer := (*clubCloses)[i]
+		table := club.GetGamerTable(gamer)
+		tableRevenue := club.GetTablesRevenue()
+		t := tableRevenue[table]
+		t.SetEndTime(club.ClosingTime())
+		t.UpdateOccupiedTime()
+		t.UpdateDuration()
+		t.UpdateRevenue(club.HourlyRate())
+		tableRevenue[table] = t
+		club.SetTablesRevenue(tableRevenue)
 		eventClose.PrintEvent()
+
 	}
 	return nil
 }
@@ -143,11 +192,30 @@ func Id12(event *objects.Event, club *objects.Club, freeTable int) error {
 	client := club.GetClientFromWaitList(0)
 	clientFromWaitList, err := objects.NewEvent(event.Time(), "12", client, freeTable)
 	if err != nil {
-		fmt.Println("id4")
+		fmt.Println("id12")
 		return err
 	}
 	clientFromWaitList.PrintEvent()
 	club.AddTable(freeTable, client)
 	club.AddGamer(client, freeTable)
+
+	//запуск подсчета времени и стоимости посещения стола
+	tableRevenue := club.GetTablesRevenue()
+	currTable, exists := tableRevenue[freeTable]
+	if exists {
+		currTable.SetStartTime(event.Time())
+		tableRevenue[freeTable] = currTable
+		club.SetTablesRevenue(tableRevenue)
+	} else {
+		table, err := objects.NewTable(freeTable, event.Time(), event.Time())
+		if err != nil {
+			fmt.Println("id12")
+			return err
+		}
+		m := make(map[int]objects.Table)
+		m[freeTable] = *table
+		club.SetTablesRevenue(m)
+	}
+
 	return nil
 }

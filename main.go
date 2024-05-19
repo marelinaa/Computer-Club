@@ -143,6 +143,9 @@ func ReadInputFile(filename string) error {
 		return err
 	}
 
+	//incomingEvents.Revenue(club)
+
+	fmt.Println(closingTime.Format("15:04"))
 	return nil
 
 }
@@ -154,11 +157,4 @@ func main() {
 		fmt.Printf("Error is in line: %v\n", err)
 		return
 	}
-
-	// Дальнейшая обработка данных из файла
-	//club.PrintClub()
-	// fmt.Printf("События:\n")
-	// for _, event := range club.Events {
-	// 	fmt.Printf("%s %s %s\n", event.Time.Format("15:04"), event.Identifier, event.Body)
-	// }
 }
