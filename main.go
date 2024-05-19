@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"example.com/computer-club/incomingEvents"
 	"fmt"
 	"os"
 	"strconv"
@@ -26,11 +27,6 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 	if err != nil {
 		return nil, errors.New("can not open file")
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-		}
-	}(file)
 
 	scanner := bufio.NewScanner(file)
 
@@ -49,6 +45,7 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 	if err != nil {
 		return nil, errors.New(scanner.Text())
 	}
+	fmt.Printf("%s\n", openingTime.Format("15:04"))
 
 	closingTime, err := parseTime(parts[1])
 	if err != nil {
@@ -63,57 +60,67 @@ func ReadInputFile(filename string) (*objects.Club, error) {
 		return nil, errors.New(lineRate)
 	}
 
+	var club *objects.Club
+	club, err = objects.NewClub(numTables, openingTime, closingTime, hourlyRate)
+
 	// Чтение событий
-	var events []objects.Event
+	var Events []objects.Event
 	for scanner.Scan() {
 		line := scanner.Text()
 		fmt.Println(line)
-		parts := strings.Split(line, " ")
-		if len(parts) != 3 || len(parts) != 4 {
-			continue
-		}
+		eventParts := strings.Split(line, " ")
+		//if len(eventParts) != 3 || len(eventParts) != 4 {
+		//	continue
+		//}
 
-		eventTime, err := parseTime(parts[0])
+		eventTime, err := parseTime(eventParts[0])
 		if err != nil {
 			return nil, errors.New("can not parse time")
 		}
 
-		var event objects.Event
-		if len(parts) == 3 {
-			event = objects.Event{
-				Time:       eventTime,
-				Identifier: parts[1],
-				Body:       parts[2],
-				TableNum:   0,
+		var event *objects.Event
+		if len(eventParts) == 3 {
+			event, err = objects.NewEvent(eventTime, eventParts[1], eventParts[2], 0)
+		}
+
+		//scanner.Scan()
+
+		if len(eventParts) == 4 {
+			tableID, err := strconv.Atoi(eventParts[3])
+			if err != nil {
+				return nil, errors.New(eventParts[3])
+			}
+			event, err = objects.NewEvent(eventTime, eventParts[1], eventParts[2], tableID)
+			if err != nil {
+				return nil, errors.New(line)
 			}
 		}
 
-		scanner.Scan()
-		tableID, err := strconv.Atoi(parts[3])
-		if err != nil {
-			return nil, errors.New(parts[3])
+		//регулирование действий игроков
+		switch event.Identifier() {
+		case "1":
+			incomingEvents.Id1(event, club)
 		}
 
-		if len(parts) == 4 {
-			event = objects.Event{
-				Time:       eventTime,
-				Identifier: parts[1],
-				Body:       parts[2],
-				TableNum:   tableID,
-			}
-		}
-
-		events = append(events, event)
+		Events = append(Events, *event)
 	}
 
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	var club *objects.Club
-	club, err = objects.NewClub(numTables, openingTime, closingTime, hourlyRate, events)
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.New("can not make club")
+	}
+
+	err = file.Close()
+	if err != nil {
+		return nil, errors.New("can not close file")
+	}
 
 	return club, nil
+
 }
 
 func main() {
@@ -125,7 +132,7 @@ func main() {
 	}
 
 	// Дальнейшая обработка данных из файла
-	club.OutputClub()
+	club.PrintClub()
 	// fmt.Printf("События:\n")
 	// for _, event := range club.Events {
 	// 	fmt.Printf("%s %s %s\n", event.Time.Format("15:04"), event.Identifier, event.Body)
